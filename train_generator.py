@@ -369,7 +369,7 @@ class ChimeraMixLightningModel(LightningModule):
             opt_d.step()
 
         else:
-            print(self.optimizers())
+            print("\n\n\n Last_One \n" + self.optimizers())
             raise ValueError("unknown optimizer index", optimizer_idx)
             # pass
 
@@ -472,7 +472,7 @@ class ChimeraMixLightningModel(LightningModule):
             self.generator.parameters(), lr=self.params.lr, betas=(0.5, 0.999)
         )
         optimizer_d = optim.Adam(
-            self.discriminator.parameters(), lr=self.params.lr, betas=(0.5, 0.999)
+            self.discriminator.parameters(), lr=self.params.lr, betas=(0.5, 0.8)
         )
 
         optimizers = [optimizer_g, optimizer_d]
