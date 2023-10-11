@@ -182,8 +182,10 @@ class ChimeraMixLightningModel(LightningModule):
             self.log_next_train_batch_gen = True
 
     def training_step(self, batch, optimizer_idx):
-        print("optimizer_idx", optimizer_idx)
+        print("\n \n Optimizer_idx", optimizer_idx)
         print(self.optimizers())
+        print("\n \nOne last call limited to [0]")
+        print(self.optimizers()[0])
         data_a, data_b = batch
         images_a = data_a["image"]
         images_b = data_b["image"]
@@ -475,12 +477,7 @@ class ChimeraMixLightningModel(LightningModule):
             self.discriminator.parameters(), lr=self.params.lr, betas=(0.5, 0.8)
         )
 
-        optimizers = [optimizer_g, optimizer_d]
-
-        # For debugging: print out the optimizers
-        print("Optimizers:", optimizers)
-
-        return optimizers
+        return optimizer_g, optimizer_d
 
 
 @hydra.main(config_path="configs/gen", config_name="base", version_base="1.1")
