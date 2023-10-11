@@ -269,9 +269,8 @@ class ChimeraMixLightningModel(LightningModule):
             # Manual optimization for the generator
             opt_g = self.optimizers()[0]
             opt_g.zero_grad()
-            self.trainer.scaler.scale(loss).backward()
-            self.trainer.scaler.step(opt_g)
-            self.trainer.scaler.update()
+            self.backward(loss)
+            opt_g.step()
 
             self.log("train_gen_loss_total", loss, on_step=True, on_epoch=True)
 
@@ -322,6 +321,7 @@ class ChimeraMixLightningModel(LightningModule):
                     self.visualize_sampling(images_a, images_b)
 
                 self.log_next_train_batch_gen = False
+            return {"loss": loss}
 
         elif optimizer_idx == 1:
             # Discriminator optimization step
@@ -364,9 +364,10 @@ class ChimeraMixLightningModel(LightningModule):
             # Manual optimization for the discriminator
             opt_d = self.optimizers()[1]
             opt_d.zero_grad()
-            self.trainer.scaler.scale(loss).backward()
-            self.trainer.scaler.step(opt_g)
-            self.trainer.scaler.update()
+            self.backward(loss)
+            opt_d.step()
+
+            return {"loss": loss}
 
         else:
             raise ValueError("unknown optimizer index", optimizer_idx)
