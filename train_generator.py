@@ -181,7 +181,8 @@ class ChimeraMixLightningModel(LightningModule):
             self.log_next_train_batch_cls = True
             self.log_next_train_batch_gen = True
 
-    def training_step(self, batch, batch_idx, optimizer_idx):
+    def training_step(self, batch, optimizer_idx):
+        print("optimizer_idx", optimizer_idx)
         data_a, data_b = batch
         images_a = data_a["image"]
         images_b = data_b["image"]
@@ -269,7 +270,7 @@ class ChimeraMixLightningModel(LightningModule):
             # Manual optimization for the generator
             opt_g = self.optimizers()[0]
             opt_g.zero_grad()
-            self.backward(loss)
+            self.manual_backward(loss)
             opt_g.step()
 
             self.log("train_gen_loss_total", loss, on_step=True, on_epoch=True)
@@ -363,7 +364,7 @@ class ChimeraMixLightningModel(LightningModule):
             # Manual optimization for the discriminator
             opt_d = self.optimizers()[1]
             opt_d.zero_grad()
-            self.backward(loss)
+            self.manual_backward(loss)
             opt_d.step()
 
         else:
