@@ -269,7 +269,7 @@ class ChimeraMixLightningModel(LightningModule):
             # Manual optimization for the generator
             opt_g = self.optimizers()[0]
             opt_g.zero_grad()
-            loss.backward()
+            self.backward(loss)
             opt_g.step()
 
             self.log("train_gen_loss_total", loss, on_step=True, on_epoch=True)
@@ -363,7 +363,7 @@ class ChimeraMixLightningModel(LightningModule):
             # Manual optimization for the discriminator
             opt_d = self.optimizers()[1]
             opt_d.zero_grad()
-            loss.backward()
+            self.backward(loss)
             opt_d.step()
 
         else:
