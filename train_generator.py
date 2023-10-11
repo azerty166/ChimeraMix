@@ -429,41 +429,6 @@ class ChimeraMixLightningModel(LightningModule):
             commit=False,
         )
 
-    # def configure_optimizers(self):
-
-    #     optimizer_g = optim.Adam(
-    #         self.generator.parameters(), lr=self.params.lr, betas=(0.5, 0.999)
-    #     )
-    #     optimizer_d = optim.Adam(
-    #         self.discriminator.parameters(), lr=self.params.lr, betas=(0.5, 0.999)
-    #     )
-
-    #     steps_per_epoch = len(self.trainer.datamodule.train_dataloader())
-    #     print("steps_per_epoch", steps_per_epoch)
-
-    #     if self.params.lr_scheduler == "multi_step_lr":
-    #         milestones = np.array([60, 120, 160])
-    #         milestones *= steps_per_epoch  # Workaround because interval epoch not working with check_val_every_n_epoch
-    #         milestones *= self.params.num_epoch_repetition
-
-    #         scheduler_g = lr_scheduler.MultiStepLR(optimizer_g, milestones, gamma=0.2)
-    #         scheduler_d = lr_scheduler.MultiStepLR(optimizer_d, milestones, gamma=0.2)
-    #     else:
-    #         raise ValueError("unknown lr_scheduler", self.params.lr_scheduler)
-
-    #     return [
-    #         {
-    #             "optimizer": optimizer_g,
-    #             "lr_scheduler": {"scheduler": scheduler_g, "interval": "step"},
-    #             "frequency": None,
-    #         },
-    #         {
-    #             "optimizer": optimizer_d,
-    #             "lr_scheduler": {"scheduler": scheduler_d, "interval": "step"},
-    #             "frequency": None,
-    #         },
-    #     ]
-
     def configure_optimizers(self):
         optimizer_g = optim.Adam(
             self.generator.parameters(), lr=self.params.lr, betas=(0.5, 0.999)
@@ -472,12 +437,46 @@ class ChimeraMixLightningModel(LightningModule):
             self.discriminator.parameters(), lr=self.params.lr, betas=(0.5, 0.999)
         )
 
-        optimizers = [optimizer_g, optimizer_d]
+        steps_per_epoch = len(self.trainer.datamodule.train_dataloader())
+        print("steps_per_epoch", steps_per_epoch)
 
-        # For debugging: print out the optimizers
-        print("Optimizers:", optimizers)
+        if self.params.lr_scheduler == "multi_step_lr":
+            milestones = np.array([60, 120, 160])
+            milestones *= steps_per_epoch  # Workaround because interval epoch not working with check_val_every_n_epoch
+            milestones *= self.params.num_epoch_repetition
 
-        return optimizers
+            scheduler_g = lr_scheduler.MultiStepLR(optimizer_g, milestones, gamma=0.2)
+            scheduler_d = lr_scheduler.MultiStepLR(optimizer_d, milestones, gamma=0.2)
+        else:
+            raise ValueError("unknown lr_scheduler", self.params.lr_scheduler)
+
+        return [
+            {
+                "optimizer": optimizer_g,
+                "lr_scheduler": {"scheduler": scheduler_g, "interval": "step"},
+                "frequency": None,
+            },
+            {
+                "optimizer": optimizer_d,
+                "lr_scheduler": {"scheduler": scheduler_d, "interval": "step"},
+                "frequency": None,
+            },
+        ]
+
+    # def configure_optimizers(self):
+    #     optimizer_g = optim.Adam(
+    #         self.generator.parameters(), lr=self.params.lr, betas=(0.5, 0.999)
+    #     )
+    #     optimizer_d = optim.Adam(
+    #         self.discriminator.parameters(), lr=self.params.lr, betas=(0.5, 0.999)
+    #     )
+
+    #     optimizers = [optimizer_g, optimizer_d]
+
+    #     # For debugging: print out the optimizers
+    #     print("Optimizers:", optimizers)
+
+    #     return optimizers
 
 
 @hydra.main(config_path="configs/gen", config_name="base", version_base="1.1")
