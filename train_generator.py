@@ -183,6 +183,7 @@ class ChimeraMixLightningModel(LightningModule):
 
     def training_step(self, batch, optimizer_idx):
         print("optimizer_idx", optimizer_idx)
+        print(self.optimizers())
         data_a, data_b = batch
         images_a = data_a["image"]
         images_b = data_b["image"]
@@ -368,8 +369,9 @@ class ChimeraMixLightningModel(LightningModule):
             opt_d.step()
 
         else:
-            # raise ValueError("unknown optimizer index", optimizer_idx)
-            pass
+            print(self.optimizers())
+            raise ValueError("unknown optimizer index", optimizer_idx)
+            # pass
 
         return {"loss": loss}
 
