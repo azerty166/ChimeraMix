@@ -368,7 +368,8 @@ class ChimeraMixLightningModel(LightningModule):
 
         else:
             raise ValueError("unknown optimizer index", optimizer_idx)
-        return loss
+        # return loss
+        return {"loss": loss}
 
     def visualize_sampling(
         self,
