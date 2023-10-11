@@ -181,7 +181,7 @@ class ChimeraMixLightningModel(LightningModule):
             self.log_next_train_batch_cls = True
             self.log_next_train_batch_gen = True
 
-    def training_step(self, batch, optimizer_idx):
+    def training_step(self, batch, batch_idx, optimizer_idx):
         data_a, data_b = batch
         images_a = data_a["image"]
         images_b = data_b["image"]
