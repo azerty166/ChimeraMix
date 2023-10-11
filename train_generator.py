@@ -321,7 +321,6 @@ class ChimeraMixLightningModel(LightningModule):
                     self.visualize_sampling(images_a, images_b)
 
                 self.log_next_train_batch_gen = False
-            return {"loss": loss}
 
         elif optimizer_idx == 1:
             # Discriminator optimization step
@@ -367,11 +366,10 @@ class ChimeraMixLightningModel(LightningModule):
             self.backward(loss)
             opt_d.step()
 
-            return {"loss": loss}
-
         else:
             raise ValueError("unknown optimizer index", optimizer_idx)
-        return loss
+
+        return {"loss": loss}
 
     def visualize_sampling(
         self,
@@ -539,7 +537,7 @@ def main(cfg: DictConfig):
         callbacks=trainer_callbacks,
         fast_dev_run=cfg.debug,
         enable_checkpointing=cfg.checkpoint,
-        precision=16,
+        precision=32,
     )
 
     dm_class = get_dm_class(cfg)
