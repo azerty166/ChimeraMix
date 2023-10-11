@@ -38,6 +38,7 @@ class ChimeraMixLightningModel(LightningModule):
 
         self.params = DictConfig(hparams)
         self.save_hyperparameters()
+        self.automatic_optimization = False
 
         self.num_classes = num_classes
         self.mean = mean
@@ -82,7 +83,6 @@ class ChimeraMixLightningModel(LightningModule):
         self.log_next_train_batch_gen = False
 
     def setup(self, stage: Optional[str] = None) -> None:
-
         if hasattr(self.trainer.datamodule, "classes"):
             classes = self.trainer.datamodule.classes
         else:
@@ -177,7 +177,6 @@ class ChimeraMixLightningModel(LightningModule):
         return self.generator(a, b, f)
 
     def on_epoch_start(self) -> None:
-
         if self.current_epoch % max(self.params.num_epoch_repetition, 5) == 0:
             self.log_next_train_batch_cls = True
             self.log_next_train_batch_gen = True
@@ -200,6 +199,7 @@ class ChimeraMixLightningModel(LightningModule):
         fake_label = torch.tensor(0, dtype=torch.float32, device=self.device)
 
         if optimizer_idx == 0:
+            # Generator optimization step
             target_a_oh = F.one_hot(target_a, num_classes=self.num_classes).float()
 
             mix_mask_a = self.gen_noise_a(bs)
@@ -266,6 +266,12 @@ class ChimeraMixLightningModel(LightningModule):
 
                 loss += loss_perceptual
 
+            # Manual optimization for the generator
+            opt_g = self.optimizers()[0]
+            opt_g.zero_grad()
+            loss.backward()
+            opt_g.step()
+
             self.log("train_gen_loss_total", loss, on_step=True, on_epoch=True)
 
             if self.log_next_train_batch_gen:
@@ -288,11 +294,19 @@ class ChimeraMixLightningModel(LightningModule):
                 self.logger.experiment.log(
                     {
                         "generated": wandb.Image(
-                            make_grid(data.float(), normalize=False, nrow=n,),
+                            make_grid(
+                                data.float(),
+                                normalize=False,
+                                nrow=n,
+                            ),
                             mode="RGB",
                         ),
                         "mask": wandb.Image(
-                            make_grid(mix_mask.float(), normalize=False, nrow=1,),
+                            make_grid(
+                                mix_mask.float(),
+                                normalize=False,
+                                nrow=1,
+                            ),
                         ),
                     },
                 )
@@ -309,6 +323,7 @@ class ChimeraMixLightningModel(LightningModule):
                 self.log_next_train_batch_gen = False
 
         elif optimizer_idx == 1:
+            # Discriminator optimization step
 
             target_a_oh = F.one_hot(target_a, num_classes=self.num_classes).float()
 
@@ -345,14 +360,23 @@ class ChimeraMixLightningModel(LightningModule):
                 "errDisc", errRefinerD, on_step=True, on_epoch=True, prog_bar=False
             )
 
+            # Manual optimization for the discriminator
+            opt_d = self.optimizers()[1]
+            opt_d.zero_grad()
+            loss.backward()
+            opt_d.step()
+
         else:
             raise ValueError("unknown optimizer index", optimizer_idx)
         return loss
 
     def visualize_sampling(
-        self, images_a, images_b, segmentation_a=None, segmentation_b=None,
+        self,
+        images_a,
+        images_b,
+        segmentation_a=None,
+        segmentation_b=None,
     ):
-
         bs = images_a.size(0)
         assert bs == images_b.size(0)
 
@@ -367,9 +391,15 @@ class ChimeraMixLightningModel(LightningModule):
             image_b_i_batch = image_b_i.unsqueeze(0).repeat(noise_samples, 1, 1, 1)
 
             if self.params.mix_mode == "segmentation":
-                image_a_i_segmentation = segmentation_a[i].unsqueeze(0).repeat(noise_samples, 1, 1)
-                image_b_i_segmentation = segmentation_b[i].unsqueeze(0).repeat(noise_samples, 1, 1)
-                mask = self.gen_noise(noise_samples, image_a_i_segmentation, image_b_i_segmentation)
+                image_a_i_segmentation = (
+                    segmentation_a[i].unsqueeze(0).repeat(noise_samples, 1, 1)
+                )
+                image_b_i_segmentation = (
+                    segmentation_b[i].unsqueeze(0).repeat(noise_samples, 1, 1)
+                )
+                mask = self.gen_noise(
+                    noise_samples, image_a_i_segmentation, image_b_i_segmentation
+                )
             else:
                 mask = self.gen_noise(noise_samples)
 
@@ -388,48 +418,62 @@ class ChimeraMixLightningModel(LightningModule):
         all_samplings_combined = torch.concat(all_samplings_combined, dim=1)
         all_samplings_combined = self.normalize_inv(all_samplings_combined)
         self.logger.experiment.log(
-            {"sampling": wandb.Image(all_samplings_combined, mode="RGB",)}, commit=False
+            {
+                "sampling": wandb.Image(
+                    all_samplings_combined,
+                    mode="RGB",
+                )
+            },
+            commit=False,
         )
 
-    def configure_optimizers(self):
+    # def configure_optimizers(self):
 
+    #     optimizer_g = optim.Adam(
+    #         self.generator.parameters(), lr=self.params.lr, betas=(0.5, 0.999)
+    #     )
+    #     optimizer_d = optim.Adam(
+    #         self.discriminator.parameters(), lr=self.params.lr, betas=(0.5, 0.999)
+    #     )
+
+    #     steps_per_epoch = len(self.trainer.datamodule.train_dataloader())
+    #     print("steps_per_epoch", steps_per_epoch)
+
+    #     if self.params.lr_scheduler == "multi_step_lr":
+    #         milestones = np.array([60, 120, 160])
+    #         milestones *= steps_per_epoch  # Workaround because interval epoch not working with check_val_every_n_epoch
+    #         milestones *= self.params.num_epoch_repetition
+
+    #         scheduler_g = lr_scheduler.MultiStepLR(optimizer_g, milestones, gamma=0.2)
+    #         scheduler_d = lr_scheduler.MultiStepLR(optimizer_d, milestones, gamma=0.2)
+    #     else:
+    #         raise ValueError("unknown lr_scheduler", self.params.lr_scheduler)
+
+    #     return [
+    #         {
+    #             "optimizer": optimizer_g,
+    #             "lr_scheduler": {"scheduler": scheduler_g, "interval": "step"},
+    #             "frequency": None,
+    #         },
+    #         {
+    #             "optimizer": optimizer_d,
+    #             "lr_scheduler": {"scheduler": scheduler_d, "interval": "step"},
+    #             "frequency": None,
+    #         },
+    #     ]
+
+    def configure_optimizers(self):
         optimizer_g = optim.Adam(
             self.generator.parameters(), lr=self.params.lr, betas=(0.5, 0.999)
         )
         optimizer_d = optim.Adam(
             self.discriminator.parameters(), lr=self.params.lr, betas=(0.5, 0.999)
         )
-
-        steps_per_epoch = len(self.trainer.datamodule.train_dataloader())
-        print("steps_per_epoch", steps_per_epoch)
-
-        if self.params.lr_scheduler == "multi_step_lr":
-            milestones = np.array([60, 120, 160])
-            milestones *= steps_per_epoch  # Workaround because interval epoch not working with check_val_every_n_epoch
-            milestones *= self.params.num_epoch_repetition
-
-            scheduler_g = lr_scheduler.MultiStepLR(optimizer_g, milestones, gamma=0.2)
-            scheduler_d = lr_scheduler.MultiStepLR(optimizer_d, milestones, gamma=0.2)
-        else:
-            raise ValueError("unknown lr_scheduler", self.params.lr_scheduler)
-
-        return [
-            {
-                "optimizer": optimizer_g,
-                "lr_scheduler": {"scheduler": scheduler_g, "interval": "step"},
-                "frequency": None,
-            },
-            {
-                "optimizer": optimizer_d,
-                "lr_scheduler": {"scheduler": scheduler_d, "interval": "step"},
-                "frequency": None,
-            },
-        ]
+        return [optimizer_g, optimizer_d]
 
 
 @hydra.main(config_path="configs/gen", config_name="base", version_base="1.1")
 def main(cfg: DictConfig):
-
     if isinstance(cfg.tags, (list, tuple)):
         cfg.tags = [cfg.tags]
 
