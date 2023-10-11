@@ -59,6 +59,9 @@ class ClassifierLightningModel(LightningModule):
         self.params.mix_modes = mix_modes
         self.save_hyperparameters()
 
+        self.log_next_batch = True
+        self.log_next_cam = True
+
         self.image_size = image_size
         self.num_classes = num_classes
         self.mean = mean
@@ -91,13 +94,21 @@ class ClassifierLightningModel(LightningModule):
 
         self.criterion = nn.CrossEntropyLoss()
 
-        self.train_accuracy = Accuracy()
-        self.train_accuracy_macro = Accuracy(average="macro", num_classes=num_classes)
-        self.train_accuracy_top5 = Accuracy(top_k=5)
-        self.val_accuracy = Accuracy()
-        self.val_accuracy_macro = Accuracy(average="macro", num_classes=num_classes)
-        self.val_accuracy_top5 = Accuracy(top_k=5)
-        self.val_confusion = ConfusionMatrix(num_classes=num_classes)
+        self.train_accuracy = Accuracy(task="multiclass", num_classes=self.num_classes)
+        self.train_accuracy_macro = Accuracy(
+            average="macro", num_classes=self.num_classes, task="multiclass"
+        )
+        self.train_accuracy_top5 = Accuracy(
+            top_k=5, task="multiclass", num_classes=self.num_classes
+        )
+        self.val_accuracy = Accuracy(task="multiclass", num_classes=self.num_classes)
+        self.val_accuracy_macro = Accuracy(
+            average="macro", num_classes=self.num_classes, task="multiclass"
+        )
+        self.val_accuracy_top5 = Accuracy(
+            top_k=5, task="multiclass", num_classes=self.num_classes
+        )
+        self.val_confusion = ConfusionMatrix(num_classes=num_classes, task="multiclass")
 
         self.normalize_inv = NormalizeInverse(self.mean, self.std)
 
@@ -105,14 +116,12 @@ class ClassifierLightningModel(LightningModule):
         return self.model(x)
 
     def on_epoch_start(self) -> None:
-
         if self.current_epoch % 1 == 0:
             self.log_next_batch = True
             self.log_next_cam = True
         self.val_confusion.reset()
 
     def training_step(self, batch, batch_idx):
-
         dict_a, dict_b = batch
         idx_a, images_a, target_a = dict_a["idx"], dict_a["image"], dict_a["target"]
         idx_b, images_b, target_b = dict_b["idx"], dict_b["image"], dict_b["target"]
@@ -185,7 +194,7 @@ class ClassifierLightningModel(LightningModule):
                 images_b_resized = resize_to(
                     images_b, target_size=self.module_mix.image_size
                 )
-                
+
                 f_a = self.module_mix.generator.encode(images_a_resized)
                 f_b = self.module_mix.generator.encode(images_b_resized)
 
@@ -280,7 +289,12 @@ class ClassifierLightningModel(LightningModule):
             self.logger.experiment.log(
                 {
                     "batch": wandb.Image(
-                        make_grid(data.float(), normalize=False, nrow=8,), mode="RGB",
+                        make_grid(
+                            data.float(),
+                            normalize=False,
+                            nrow=8,
+                        ),
+                        mode="RGB",
                     ),
                 },
                 commit=False,
@@ -349,7 +363,6 @@ class ClassifierLightningModel(LightningModule):
 
 @hydra.main(config_path="configs/cls", config_name="base", version_base="1.1")
 def main(cfg: DictConfig):
-
     cfg.epochs = math.ceil(cfg.epochs)
 
     if isinstance(cfg.tags, str):
@@ -402,7 +415,6 @@ def main(cfg: DictConfig):
     trainer = pl.Trainer(
         logger=wandb_logger,
         default_root_dir="tmp/lightning_logs",
-        gpus=1,
         max_epochs=cfg.epochs * cfg.num_epoch_repetition,
         check_val_every_n_epoch=cfg.num_epoch_repetition,
         callbacks=trainer_callbacks,
@@ -487,5 +499,5 @@ def main(cfg: DictConfig):
 
 
 if __name__ == "__main__":
-    atexit.register(lambda: print("\x1b[?25h"))  
+    atexit.register(lambda: print("\x1b[?25h"))
     main()
