@@ -182,10 +182,12 @@ class ChimeraMixLightningModel(LightningModule):
             self.log_next_train_batch_gen = True
 
     def training_step(self, batch, optimizer_idx):
-        print("\n \n Optimizer_idx", optimizer_idx)
-        print(self.optimizers())
+        # print("\n \n Optimizer_idx", optimizer_idx)
+        # print(self.optimizers())
         print("\n \nOne last call limited to [0]")
         print(self.optimizers()[0])
+        print("\n \nOne last call limited to [1]")
+        print(self.optimizers()[1])
         data_a, data_b = batch
         images_a = data_a["image"]
         images_b = data_b["image"]
@@ -371,7 +373,7 @@ class ChimeraMixLightningModel(LightningModule):
             opt_d.step()
 
         else:
-            print("\n\n\n Last_One \n" + self.optimizers())
+            # print("\n\n\n Last_One \n" + self.optimizers())
             raise ValueError("unknown optimizer index", optimizer_idx)
             # pass
 
