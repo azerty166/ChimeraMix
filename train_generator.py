@@ -470,7 +470,13 @@ class ChimeraMixLightningModel(LightningModule):
         optimizer_d = optim.Adam(
             self.discriminator.parameters(), lr=self.params.lr, betas=(0.5, 0.999)
         )
-        return [optimizer_g, optimizer_d]
+
+        optimizers = [optimizer_g, optimizer_d]
+
+        # For debugging: print out the optimizers
+        print("Optimizers:", optimizers)
+
+        return optimizers
 
 
 @hydra.main(config_path="configs/gen", config_name="base", version_base="1.1")
