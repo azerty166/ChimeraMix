@@ -182,12 +182,14 @@ class ChimeraMixLightningModel(LightningModule):
             self.log_next_train_batch_gen = True
 
     def training_step(self, batch, optimizer_idx):
+        # -------------- Debugging Optimizers ---------
         # print("\n \n Optimizer_idx", optimizer_idx)
         # print(self.optimizers())
-        print("\n \nOne last call limited to [0]")
-        print(self.optimizers()[0])
-        print("\n \nOne last call limited to [1]")
-        print(self.optimizers()[1])
+        # print("\n \nOne last call limited to [0]")
+        # print(self.optimizers()[0])
+        # print("\n \nOne last call limited to [1]")
+        # print(self.optimizers()[1])
+
         data_a, data_b = batch
         images_a = data_a["image"]
         images_b = data_b["image"]
@@ -328,8 +330,8 @@ class ChimeraMixLightningModel(LightningModule):
 
                 self.log_next_train_batch_gen = False
 
+        # elif optimizer_idx == 1:
         else:
-            # elif optimizer_idx == 1:
             # Discriminator optimization step
 
             target_a_oh = F.one_hot(target_a, num_classes=self.num_classes).float()
