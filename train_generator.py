@@ -479,7 +479,7 @@ class ChimeraMixLightningModel(LightningModule):
             self.generator.parameters(), lr=self.params.lr, betas=(0.5, 0.999)
         )
         optimizer_d = optim.Adam(
-            self.discriminator.parameters(), lr=self.params.lr, betas=(0.5, 0.8)
+            self.discriminator.parameters(), lr=self.params.lr, betas=(0.5, 0.999)
         )
 
         return optimizer_g, optimizer_d
