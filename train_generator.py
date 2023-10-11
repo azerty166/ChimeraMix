@@ -529,7 +529,6 @@ def main(cfg: DictConfig):
         trainer_callbacks.append(checkpoint_cb)
 
     trainer = pl.Trainer(
-        automatic_optimization=False,
         logger=wandb_logger,
         default_root_dir="tmp/lightning_logs",
         max_epochs=cfg.epochs * cfg.num_epoch_repetition,
