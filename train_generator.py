@@ -328,7 +328,8 @@ class ChimeraMixLightningModel(LightningModule):
 
                 self.log_next_train_batch_gen = False
 
-        elif optimizer_idx == 1:
+        else:
+            # elif optimizer_idx == 1:
             # Discriminator optimization step
 
             target_a_oh = F.one_hot(target_a, num_classes=self.num_classes).float()
@@ -372,10 +373,10 @@ class ChimeraMixLightningModel(LightningModule):
             self.manual_backward(loss)
             opt_d.step()
 
-        else:
-            # print("\n\n\n Last_One \n" + self.optimizers())
-            raise ValueError("unknown optimizer index", optimizer_idx)
-            # pass
+        # else:
+        #     # print("\n\n\n Last_One \n" + self.optimizers())
+        #     raise ValueError("unknown optimizer index", optimizer_idx)
+        #     # pass
 
         return {"loss": loss}
 
